@@ -24,10 +24,14 @@ jobs:
       release-version: ${{ steps.out.outputs.release-version }}
       next-version: ${{ steps.out.outputs.next-version }}
 
+    permissions:
+      contents: write
+      issues: write
+
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{secrets.RELEASE_TOKEN}}
+          token: ${{secrets.GITHUB_TOKEN}}
 
       - uses: radcortez/project-metadata-action@main
         name: Retrieve project metadata
