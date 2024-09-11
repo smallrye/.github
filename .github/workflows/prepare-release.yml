@@ -49,16 +49,8 @@ jobs:
 
       - name: Configure Git author
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-
-      - name: Update latest release version in docs
-        run: |
-          mvn -B -ntp -pl docs -am package -DskipTests -DskipITs -Denforcer.skip -Dformatter.skip -Dimpsort.skip
-          if ! git diff --quiet docs/modules/ROOT/pages/includes; then
-            git add docs/modules/ROOT/pages/includes
-            git commit -m "Update the latest release version ${{env.CURRENT_VERSION}} in documentation"
-          fi
+          git config --global user.name "SmallRye CI"
+          git config --global user.email "smallrye@googlegroups.com"
 
       - name: Maven release ${{env.CURRENT_VERSION}}
         run: |
@@ -69,6 +61,12 @@ jobs:
         run: |
           git push
           git push origin ${CURRENT_VERSION}
+
+      - uses: radcortez/milestone-release-action@main
+        name: milestone release
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          milestone-title: ${{steps.metadata.outputs.current-version}}
 
       - name: Output release version
         id: out
