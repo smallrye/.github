@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   prepare-release:
@@ -23,10 +24,6 @@ jobs:
     outputs:
       release-version: ${{ steps.out.outputs.release-version }}
       next-version: ${{ steps.out.outputs.next-version }}
-
-    permissions:
-      contents: write
-      issues: write
 
     steps:
       - uses: actions/checkout@v4
