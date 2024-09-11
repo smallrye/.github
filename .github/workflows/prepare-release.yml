@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{secrets.GITHUB_TOKEN}}
+          token: ${{secrets.RELEASE_TOKEN}}
 
       - uses: radcortez/project-metadata-action@main
         name: Retrieve project metadata
