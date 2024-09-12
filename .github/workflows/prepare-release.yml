@@ -26,9 +26,27 @@ jobs:
       next-version: ${{ steps.out.outputs.next-version }}
 
     steps:
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        name: Create GitHub App Token
+        with:
+          app-id: ${{ vars.CI_APP_ID }}
+          private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
+
+      - name: Get GitHub App User ID
+        id: get-user-id
+        run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Configure Git author
+        run: |
+          git config --global user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
+          git config --global user.email '${{ steps.get-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com>'
+
       - uses: actions/checkout@v4
         with:
-          token: ${{secrets.RELEASE_TOKEN}}
+          token: ${{steps.app-token.outputs.token}}
 
       - uses: radcortez/project-metadata-action@main
         name: Retrieve project metadata
@@ -50,11 +68,6 @@ jobs:
           java-version: 21
           cache: 'maven'
 
-      - name: Configure Git author
-        run: |
-          git config --global user.name "SmallRye CI"
-          git config --global user.email "smallrye@googlegroups.com"
-
       - name: Maven release ${{env.CURRENT_VERSION}}
         run: |
           mvn -B release:prepare -Prelease -Dgpg.skip=true -DreleaseVersion=${CURRENT_VERSION} -DdevelopmentVersion=${NEXT_VERSION} -DscmCommentPrefix="[skip ci] " -Drelease.arguments="-Dgpg.skip=true"
@@ -68,7 +81,7 @@ jobs:
       - uses: radcortez/milestone-release-action@main
         name: milestone release
         with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
+          github-token: ${{steps.app-token.outputs.token}}
           milestone-title: ${{steps.metadata.outputs.current-version}}
 
       - name: Output release version
