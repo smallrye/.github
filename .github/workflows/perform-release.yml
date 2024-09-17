@@ -1,4 +1,4 @@
-name: Quarkiverse Perform Release
+name: SmallRye Perform Release
 
 on:
   # Called in the release workflow
