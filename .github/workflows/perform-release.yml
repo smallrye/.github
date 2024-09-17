@@ -92,7 +92,7 @@ jobs:
           private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
           repositories: smallrye-release
 
-      - name: Invoke Quarkiverse Release workflow
+      - name: Invoke Release workflow
         run: |
           gh workflow run deploy-artifacts.yml -R smallrye/smallrye-release \
             -f github_repository=${GH_REPO} \
