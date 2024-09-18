@@ -73,10 +73,18 @@ jobs:
           java-version: 21
           cache: 'maven'
 
+      - name: Detect Maven Wrapper
+        run: |
+          if [ -f mvnw ]; then
+            echo "MAVEN_EXEC=./mvnw" >> $GITHUB_ENV
+          else
+            echo "MAVEN_EXEC=mvn" >> $GITHUB_ENV
+          fi
+
       - name: Maven release ${{env.CURRENT_VERSION}}
         run: |
-          mvn -B release:prepare -Prelease -Dgpg.skip=true -DreleaseVersion=${CURRENT_VERSION} -DdevelopmentVersion=${NEXT_VERSION} -DscmCommentPrefix="[skip ci] " -Drelease.arguments="-Dgpg.skip=true"
-          mvn -B release:clean
+          ${MAVEN_EXEC} -B release:prepare -Prelease -Dgpg.skip=true -DreleaseVersion=${CURRENT_VERSION} -DdevelopmentVersion=${NEXT_VERSION} -DscmCommentPrefix="[skip ci] " -Drelease.arguments="-Dgpg.skip=true"
+          ${MAVEN_EXEC} -B release:clean
 
       - name: Push changes to ${{github.base_ref}} branch and tag ${{env.CURRENT_VERSION}}
         run: |
