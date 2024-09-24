@@ -135,7 +135,7 @@ jobs:
       - name: Report Job Summary
         run: |
           # Wait for the deploy-artifacts.yml workflow to start
-          sleep 3
+          sleep 10
           # Get the URL of the release workflow (MUST match the workflow's run-name)
           SUMMARY_URL=$(gh run list --workflow deploy-artifacts.yml -R smallrye/smallrye-release --json name,url -q ".[] | select(.name == \"${WORKFLOW_RELEASE_RUN_NAME}\") | .url" --limit 1)
           echo "## Deployment status" >> $GITHUB_STEP_SUMMARY
