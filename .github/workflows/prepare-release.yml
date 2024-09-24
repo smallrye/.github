@@ -96,7 +96,6 @@ jobs:
         with:
           github-token: ${{steps.app-token.outputs.token}}
           milestone-title: ${{steps.metadata.outputs.current-version}}
-          milestone-next: ${{steps.metadata.outputs.next-version}}
 
       - name: Output release version
         id: out
