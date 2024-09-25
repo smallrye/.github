@@ -124,7 +124,7 @@ jobs:
 
       - name: Invoke SmallRye Release workflow
         run: |
-          gh workflow run deploy-artifacts.yml -R quarkiverse/quarkiverse-release \
+          gh workflow run deploy-artifacts.yml -R smallrye/smallrye-release \
             -f github_repository=${GH_REPO} \
             -f run_id=${GH_RUN_ID} \
             -f version=${RELEASE_VERSION} \
