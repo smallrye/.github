@@ -88,10 +88,26 @@ jobs:
             echo "MAVEN_EXEC=mvn" >> $GITHUB_ENV
           fi
 
+      - name: Invoke Pre-Prepare Release Hook (if exists)
+        if: ${{ hashFiles('.github/workflows/hooks/pre-prepare-release.sh') != '' }}
+        run: ./.github/workflows/hooks/pre-prepare-release.sh
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          CURRENT_VERSION: ${{env.CURRENT_VERSION}}
+          NEXT_VERSION: ${{env.NEXT_VERSION}}
+
       - name: Maven release ${{env.CURRENT_VERSION}}
         run: |
           ${MAVEN_EXEC} -B release:prepare -Prelease -Dgpg.skip=true -DreleaseVersion=${CURRENT_VERSION} -DdevelopmentVersion=${NEXT_VERSION} -Drelease.arguments="-Dgpg.skip=true"
           ${MAVEN_EXEC} -B release:clean
+
+      - name: Invoke Post-Prepare Release Hook (if exists)
+        if: ${{ hashFiles('.github/workflows/hooks/post-prepare-release.sh') != '' }}
+        run: ./.github/workflows/hooks/post-prepare-release.sh
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          CURRENT_VERSION: ${{env.CURRENT_VERSION}}
+          NEXT_VERSION: ${{env.NEXT_VERSION}}
 
       - name: Push changes to ${{github.base_ref}} branch and tag ${{env.CURRENT_VERSION}}
         run: |
