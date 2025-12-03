@@ -8,11 +8,6 @@ on:
         type: string
         default: ''
         description: The Git ref to checkout; defaults to the exact originating commit
-      create_release:
-        required: false
-        description: Create Release?
-        type: boolean
-        default: true
     # Map the workflow outputs to job outputs
     outputs:
       release-version:
@@ -115,12 +110,3 @@ jobs:
         run: |
           echo "release-version=${CURRENT_VERSION}" >> $GITHUB_OUTPUT
           echo "next-version=${NEXT_VERSION}" >> $GITHUB_OUTPUT
-
-      - name: Create GitHub Release
-        if: ${{ inputs.create_release }}
-        run: gh release create ${CURRENT_VERSION} --generate-notes --latest=${LATEST_RELEASE} --prerelease=${PRE_RELEASE} --notes="${ADDITIONAL_NOTES}"
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          PRE_RELEASE: ${{ steps.metadata.outputs.pre-release == 'true' }}
-          LATEST_RELEASE: ${{ !steps.metadata.outputs.latest || (steps.metadata.outputs.latest == 'true') }}
-          ADDITIONAL_NOTES: ${{ steps.metadata.outputs.additional-notes }}
