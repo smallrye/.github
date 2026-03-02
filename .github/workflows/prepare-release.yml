@@ -8,6 +8,11 @@ on:
         type: string
         default: ''
         description: The Git ref to checkout; defaults to the exact originating commit
+      java_version:
+        required: false
+        description: Java Version
+        type: number
+        default: 21
     # Map the workflow outputs to job outputs
     outputs:
       release-version:
@@ -72,11 +77,11 @@ jobs:
           echo "CURRENT_VERSION=${{steps.metadata.outputs.current-version}}" >> $GITHUB_ENV
           echo "NEXT_VERSION=${{steps.metadata.outputs.next-version}}" >> $GITHUB_ENV
 
-      - name: Set up JDK 21
+      - name: Set up JDK ${{inputs.java_version}}
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 21
+          java-version: ${{inputs.java_version}}
           cache: 'maven'
 
       - name: Detect Maven Wrapper
