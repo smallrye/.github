@@ -1,4 +1,4 @@
-name: SmallRye Perform Release
+name: Quarkiverse Perform Release
 
 on:
   # Called in the release workflow
@@ -8,11 +8,6 @@ on:
         required: true
         description: Tag version to perform release
         type: string
-      java_version:
-        required: false
-        description: Java Version
-        type: number
-        default: 21
       ref:
         description: 'Branch or tag to deploy'
         required: false
@@ -22,6 +17,20 @@ on:
         required: false
         type: boolean
         default: false
+      java_version:
+        required: false
+        description: Java Version
+        type: number
+        default: 21
+      watch_release_workflow:
+        description: 'Wait for the release workflow to complete before returning'
+        required: false
+        type: boolean
+        default: false
+      maven_args:
+        description: 'Additional Maven arguments to pass to the release command'
+        required: false
+        type: string
 
   # Can be triggered manually also
   workflow_dispatch:
@@ -39,6 +48,15 @@ on:
         required: false
         type: boolean
         default: false
+      watch_release_workflow:
+        description: 'Wait for the release workflow to complete before returning'
+        required: false
+        type: boolean
+        default: false
+      maven_args:
+        description: 'Additional Maven arguments to pass to the release command'
+        required: false
+        type: string
 
 permissions:
   attestations: write
@@ -102,7 +120,9 @@ jobs:
           fi
 
       - name: Deploy release ${{env.RELEASE_VERSION}}
-        run: $MAVEN_EXEC deploy -DperformRelease -DaltDeploymentRepository=local::file://${{ github.workspace }}/repository -DskipTests
+        run: $MAVEN_EXEC -B deploy -DperformRelease -DaltDeploymentRepository=local::file://${{ github.workspace }}/repository -DskipTests -DskipITs -Denforcer.skip -Dformat.skip
+        env:
+          MAVEN_ARGS: ${{ inputs.maven_args || github.event.inputs.maven_args }}
 
       - name: Tarball the artifacts
         run: tar -czvf ${ARTIFACT_PATH} -C repository .
@@ -128,14 +148,17 @@ jobs:
           repositories: smallrye-release
 
       - name: Invoke SmallRye Release workflow
+        id: out
         run: |
-          gh workflow run deploy-artifacts.yml -R smallrye/smallrye-release \
+          RELEASE_WORKFLOW_URL=$(gh workflow run deploy-artifacts.yml -R smallrye/smallrye-release \
             -f github_repository=${GH_REPO} \
             -f run_id=${GH_RUN_ID} \
             -f version=${RELEASE_VERSION} \
             -f name=${ARTIFACT_NAME} \
-            -f dry_run=${DRY_RUN}
-
+            -f dry_run=${DRY_RUN})
+          RELEASE_WORKFLOW_ID=$(basename "$RELEASE_WORKFLOW_URL")
+          echo "release-workflow-id=$RELEASE_WORKFLOW_ID" >> $GITHUB_OUTPUT
+          echo "release-workflow-url=$RELEASE_WORKFLOW_URL" >> $GITHUB_OUTPUT
           echo "RELEASE_WORKFLOW_RUN_NAME=Deploy ${ARTIFACT_NAME} ${RELEASE_VERSION} to Central" >> $GITHUB_ENV
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -143,25 +166,28 @@ jobs:
           GH_RUN_ID: ${{ github.run_id }}
           ARTIFACT_NAME: ${{ github.event.repository.name }}
 
-      - name: Output release version
-        id: out
-        run: |
-          # Wait for the deploy-artifacts.yml workflow to start
-          sleep 10
-          # Get the URL of the release workflow (MUST match the workflow's run-name)
-          RELEASE_WORKFLOW_DATA=$(gh run list --workflow deploy-artifacts.yml -R smallrye/smallrye-release --json databaseId,name,url -q ".[] | select(.name == \"${RELEASE_WORKFLOW_RUN_NAME}\")" --limit 1)
-          RELEASE_WORKFLOW_ID=$(jq -r '.databaseId' <<< $RELEASE_WORKFLOW_DATA)
-          RELEASE_WORKFLOW_URL=$(jq -r '.url' <<< $RELEASE_WORKFLOW_DATA)
-          echo "release-workflow-id=$RELEASE_WORKFLOW_ID" >> $GITHUB_OUTPUT
-          echo "release-workflow-url=$RELEASE_WORKFLOW_URL" >> $GITHUB_OUTPUT
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-
       - name: Report Job Summary
         run: |
-          echo "## Deployment status" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployment status" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY # this is a blank line
           echo "Monitor the artifacts being deployed to central here:" >> $GITHUB_STEP_SUMMARY
           echo "- [${RELEASE_WORKFLOW_RUN_NAME}](${SUMMARY_URL})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY # this is a blank line
+          echo "Or use the [GitHub CLI](https://cli.github.com/) tool locally:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY # this is a blank line
+          echo "- gh run watch ${RELEASE_WORKFLOW_ID} -R smallrye/smallrye-release" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY # this is a blank line
+          echo "To display the logs if the release **failed**:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY # this is a blank line
+          echo "- gh run view ${RELEASE_WORKFLOW_ID} -R smallrye/smallrye-release --log-failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY # this is a blank line
         env:
           SUMMARY_URL: ${{ steps.out.outputs.release-workflow-url }}
+          RELEASE_WORKFLOW_ID: ${{ steps.out.outputs.release-workflow-id }}
+
+      - name: Wait for the release workflow to finish
+        if: ${{ inputs.watch_release_workflow || github.event.inputs.watch_release_workflow }}
+        run: gh run watch ${RELEASE_WORKFLOW_ID} -R smallrye/smallrye-release --exit-status
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RELEASE_WORKFLOW_ID: ${{ steps.out.outputs.release-workflow-id }}
