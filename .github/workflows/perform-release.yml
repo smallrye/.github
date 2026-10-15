@@ -75,7 +75,7 @@ jobs:
     outputs:
       release-workflow-id: ${{ steps.out.outputs.release-workflow-id }}
       release-workflow-url: ${{ steps.out.outputs.release-workflow-url }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Set Dry Run Environment Variable
         run: |
